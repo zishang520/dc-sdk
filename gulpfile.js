@@ -9,7 +9,6 @@ import path from 'path'
 import { pipeline } from 'node:stream/promises'
 import gulp from 'gulp'
 import esbuild from 'esbuild'
-import concat from 'gulp-concat'
 import startServer from './server.js'
 import inlineImage from 'esbuild-plugin-inline-image'
 import { sassPlugin } from 'esbuild-sass-plugin'
@@ -215,13 +214,14 @@ async function combineJs(options) {
   // combine for iife
   if (options.iife) {
     await fse.ensureFile(path.join(cesium_path, 'Cesium.js'))
-    await pipeline(
-      gulp.src([
-        path.join(cesium_path, 'Cesium.js'),
-        path.join('dist', 'modules-iife.js'),
-      ]),
-      concat('dc.min.js'),
-      gulp.dest('dist')
+    const [cesium, modules] = await Promise.all([
+      fse.readFile(path.join(cesium_path, 'Cesium.js'), 'utf8'),
+      fse.readFile(path.join('dist', 'modules-iife.js'), 'utf8'),
+    ])
+    await fse.outputFile(
+      path.join('dist', 'dc.min.js'),
+      `${cesium}\n${modules}`,
+      { encoding: 'utf8' }
     )
   }
 
